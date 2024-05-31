@@ -1,12 +1,2 @@
-# Rust files when building
-debug/
+Cargo.lock
 target/
-
-# Intellij/RustRovers user specific files
-.idea/
-
-# .env files for testing
-**.env
-
-# .http Intellij/RustRover request files
-**.http
