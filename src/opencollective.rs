@@ -1,12 +1,13 @@
 use std::collections::HashMap;
+use std::env;
 use std::ptr::null;
 use reqwest::header::HeaderMap;
 use rocket::yansi::Paint;
 use serde::Deserialize;
 use serde_json::json;
-use crate::{env_vars, utils};
+use crate::utils;
 
-struct Response {
+pub struct Response {
     state: String,
     oc: OpenCollectiveUser,
     metadata: OpenCollectiveMetadata
@@ -17,10 +18,12 @@ struct OpenCollectiveMeQueryResult {
     data: OpenCollectiveMeData
 }
 
+#[derive(Deserialize)]
 struct OpenCollectiveMeData {
     me: OpenCollectiveUser
 }
 
+#[derive(Deserialize)]
 struct OpenCollectiveUser {
     id: String,
     name: String,
@@ -40,31 +43,31 @@ struct CodeToTokenResponse {
     access_token: String
 }
 
-async fn get_data(code: String) -> Response {
+pub async fn get_data(code: String) -> Response {
     let params = [
         ("grant_type", "authorization_code"),
-        ("client_id", &env_vars::CLIENT_ID),
-        ("client_secret", &env_vars::CLIENT_SECRET),
+        ("client_id", &env::var("OPEN_COLLECTIVE_CLIENT_ID").expect("Missing Open Collective Client ID")),
+        ("client_secret", &env::var("OPEN_COLLECTIVE_CLIENT_SECRET").expect("Missing Open Collective Client Secret")),
         ("code", &code),
-        ("redirect_uri", utils::base_url("open-collective/redirect")),
+        ("redirect_uri", &utils::base_url("open-collective/redirect")),
     ];
 
     let client = reqwest::Client::new();
     let token = client.post("https://opencollective.com/oauth/token")
         .form(&params)
         .send()
-        .await?
+        .await.unwrap()
         .json::<CodeToTokenResponse>()
-        .await?
+        .await.unwrap()
         .access_token;
 
     let user = client.post("https://opencollective.com/api/graphql/v2")
         .header("Authorization", format!("Bearer {}", token))
         .json(&json!({"query": "{ me { id slug name } }"}))
         .send()
-        .await?
+        .await.unwrap()
         .json::<OpenCollectiveMeQueryResult>()
-        .await?;
+        .await.unwrap();
     
     let user_metadata_graphql = "fragment AccountParts on Account {
           memberOf (account: {slug: $slug}, limit: 1) {
@@ -96,15 +99,15 @@ async fn get_data(code: String) -> Response {
               }
             }
           }
-        }".replace("$slug", &env_vars::SLUG).replace("$account_id", &user.data.me.id);
+        }".replace("$slug", &env::var("OPEN_COLLECTIVE_SLUG").expect("Missing Open Collective Slug")).replace("$account_id", &user.data.me.id);
 
     let user_metadata = client.post("https://opencollective.com/api/graphql/v2")
         .header("Authorization", format!("Bearer {}", token))
         .json(&json!({"query": user_metadata_graphql}))
         .send()
-        .await?
+        .await.unwrap()
         .json::<OpenCollectiveMetadata>()
-        .await?;
+        .await.unwrap();
 
     return Response {
         state: "".to_string(),

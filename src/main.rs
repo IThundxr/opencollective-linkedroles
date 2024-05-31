@@ -1,6 +1,5 @@
 mod verify_state;
 mod opencollective;
-mod env_vars;
 mod utils;
 
 #[macro_use] extern crate rocket;
@@ -48,7 +47,7 @@ fn linked_role(verification_state: &State<Mutex<VerificationState>>) -> Redirect
     }
 
     let url = format!("https://opencollective.com/oauth/authorize?client_id={}&response_type=code&redirect_uri={}&scope=account&state={}",
-                      env_vars::CLIENT_ID, utils::base_url("open-collective/redirect"), state_id);
+                      env::var("OPEN_COLLECTIVE_CLIENT_ID").expect("Missing Open Collective Client ID"), utils::base_url("open-collective/redirect"), state_id);
 
     Redirect::to(url)
 }
@@ -66,7 +65,9 @@ fn open_collective_redirect(
             {
                 state_lock.generate(state_id.clone(), 900);
             }
-            
+
+            let res = opencollective::get_data(code);
+
             Redirect::to(uri!("https://ithundxr.dev"))
         }),
         Err(_) => Err("Failed to verify state"),

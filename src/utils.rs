@@ -1,7 +1,8 @@
+use std::env;
 use regex::Regex;
-use crate::env_vars;
 
-pub fn base_url(input: &str) -> &str {
+pub fn base_url(input: &str) -> String {
     let regex = Regex::new("/$").unwrap();
-    format!("{}/{}", regex.replace(&env_vars::REDIRECT_BASE, ""), input)
+    let base = env::var("REDIRECT_BASE").expect("Missing Redirect Base");
+    format!("{}/{}", regex.replace(&base, ""), input)
 }
