@@ -18,14 +18,12 @@ impl VerificationState {
     }
 
     pub fn verify(&self, state_id: &str) -> Result<(), &'static str> {
-        match self.states.get(state_id) {
-            Some(&expiry_time) => {
-                if expiry_time >= Utc::now().timestamp() {
-                    return Ok(());
-                }
+        if let Some(&expiry_time) = self.states.get(state_id) {
+            if expiry_time >= Utc::now().timestamp() {
+                return Ok(());
             }
-            _ => {}
         }
+
         Err("State not found or expired")
     }
 }
