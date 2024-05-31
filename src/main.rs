@@ -9,7 +9,6 @@ use rocket::response::Redirect;
 use rocket::{Build, Rocket, State};
 use std::env;
 use std::sync::Mutex;
-use regex::Regex;
 use uuid::Uuid;
 use crate::verify_state::VerificationState;
 
